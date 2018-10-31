@@ -111,25 +111,24 @@ def graphWords(text,averageOverWords=100,tags=["NNP","NNPS"],title="graph"):
 
 """
 def probabilitiesOfCoupons(n,tries):
-    probabilities = [[0.0 for i in range(j+1)] for j in range(tries)];
-    probabilities[0][0]=1.0
-    for i in range(1,tries):
-        for j in range(i+1):
-            #keeping check on corner cases
-            if(j==n-1):
-                probabilities[i][j] = probabilities[i-1][j-1]*((n-j)/n);
-                if(len(probabilities[i-1]) >= n ):
-                    probabilities[i][j] +=probabilities[i-1][j]*((j+1)/n);
-                break;
-            if(j == 0):
-                probabilities[i][j] = probabilities[i-1][j]*(1/n);
-            elif(j == i):
-                probabilities[i][j] = probabilities[i-1][j-1]*((n-j)/n);
-            else:
-                #probability of getting j new coupons in i+1 th try is:
-                #probability of not getting any new coupon in i+1 th try * probability of getting j new coupons in i-1 th try + probability of getting new coupon in i+1th try * probability of getting j-1 new coupons in ith try 
-                probabilities[i][j] = probabilities[i-1][j-1]*((n-j)/n) + probabilities[i-1][j]*((j+1)/n);
-    return probabilities
+	probabilities = [[0.0 for i in range(j+1)] for j in range(tries)];
+	probabilities[0][0]=1.0
+	for i in range(1,tries):
+		for j in range(i+1):
+			if(j==n-1):
+				probabilities[i][j] = probabilities[i-1][j-1]*((n-j)/n);
+			if(len(probabilities[i-1]) >= n ):
+				probabilities[i][j] +=probabilities[i-1][j]*((j+1)/n);
+				break;
+			if(j == 0):
+				probabilities[i][j] = probabilities[i-1][j]*(1/n);
+			elif(j == i):
+				probabilities[i][j] = probabilities[i-1][j-1]*((n-j)/n);
+			else:
+				#probability of getting j new coupons in i+1 th try is:
+				#probability of not getting any new coupon in i+1 th try * probability of getting j new coupons in i-1 th try + probability of getting new coupon in i+1th try * probability of getting j-1 new coupons in ith try 
+				probabilities[i][j] = probabilities[i-1][j-1]*((n-j)/n) + probabilities[i-1][j]*((j+1)/n);
+	return probabilities
 
 def excpectedCouponCount(Y1axis,n):
     m = len(Y1axis);
@@ -161,15 +160,15 @@ def getNewNounsCount(text,trie,tags = ["NNP","NNPS"]):
             #if it is not number or punctuations or a single letter
             if hasNumbers(tagged_word) == False and hasPunctuations(tagged_word) == False and len(tagged_word) > 1:
                 #if it is a noun
-                #if pos_tag([tagged_word])[0][1] in tags :
-                numberOfNouns +=1
+                if pos_tag([tagged_word])[0][1] in tags :
+                	numberOfNouns +=1
             trie.insert(tagged_word[0]);
     return numberOfNouns 
-
+ 
 def graphWiki(title):
     pageTitle = "india"
     url="https://en.wikipedia.org/w/api.php?action=query&format=xml&prop=revisions&rvprop=timestamp|content&rvlimit=max&rvdir=newer&titles="+pageTitle   #url for getting data
-
+    tags = ["NNP","NNPS"]
     next = ""                                             #information for the next request
     
     fmt = "%Y-%m-%dT%H:%M:%SZ"
@@ -197,15 +196,19 @@ def graphWiki(title):
         
         #parsing the xml file.
         e =  ET.fromstring(response.content);
-        
         start = time.clock()
         #for every revesion in the page
-        print("got page requested..");
         for rev in e.find('query').find('pages').find('page').find('revisions').findall('rev'):
             if(firsTime):
                 d1 = datetime.strptime(rev.get("timestamp"),fmt);
                 firsTime == False
-            nounCount+=getNewNounsCount(re.sub(cleanr,"",str(rev.text)) , trie )
+            tagged_words = pos_tag(word_tokenize((re.sub(cleanr,"",str(rev.text)))))
+            for tagged_word in tagged_words:
+                if hasNumbers(tagged_word[0]) == False and hasPunctuations(tagged_word[0]) == False and len(tagged_word[0]) > 1:  #to remove words like ",","132" etc.
+                    if(tagged_word[1] in tags):
+                    	if(trie.search(tagged_word[0])):
+                    		nounCount+=1
+                    		trie.insert(tagged_word[0]);
             d2 = datetime.strptime(rev.get("timestamp"),fmt);
             XY[(d2-d1).days] = nounCount
         count=count+1
