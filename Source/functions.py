@@ -166,7 +166,7 @@ def getNewNounsCount(text,trie,tags = ["NNP","NNPS"]):
     return numberOfNouns 
  
 def graphWiki(title):
-    pageTitle = "india"
+    pageTitle = title
     url="https://en.wikipedia.org/w/api.php?action=query&format=xml&prop=revisions&rvprop=timestamp|content&rvlimit=max&rvdir=newer&titles="+pageTitle   #url for getting data
     tags = ["NNP","NNPS"]
     next = ""                                             #information for the next request
@@ -202,7 +202,9 @@ def graphWiki(title):
             if(firsTime):
                 d1 = datetime.strptime(rev.get("timestamp"),fmt);
                 firsTime == False
-            tagged_words = pos_tag(word_tokenize((re.sub(cleanr,"",str(rev.text)))))
+            wikiText =  (re.sub(cleanr,"",str(rev.text)))
+            print (wikiText)
+            tagged_words = pos_tag(word_tokenize(wikiText))
             for tagged_word in tagged_words:
                 if hasNumbers(tagged_word[0]) == False and hasPunctuations(tagged_word[0]) == False and len(tagged_word[0]) > 1:  #to remove words like ",","132" etc.
                     if(tagged_word[1] in tags):
@@ -223,4 +225,25 @@ def graphWiki(title):
     plt.plot(x, y);
     plt.savefig("test.png");
     plt.show();
-    
+
+
+def getRefData(path):
+	Refdict={}
+	myset = set() 
+	with open(path,"r") as f:
+		content = f.read()
+	refTags = re.findall(r'&lt;ref.*?&gt.*?;/ref&gt',content);
+	for tag in refTags:
+		urls = re.findall(r"http://[^ ]*",tag);
+		for url in urls:
+			if url not in myset:
+				domain = re.findall(r"http://[^/]*",url)
+				if domain[0] in Refdict.keys():
+					Refdict[domain[0]] += 1
+				else:
+					Refdict[domain[0]] = 1
+				myset.add(url)
+	return Refdict
+
+
+

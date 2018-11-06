@@ -1,0 +1,75 @@
+
+1)functions.py:
+
+	a)graphWords(text,averageOverWords=100,tags=["NNP","NNPS"],title="graph"):
+		Parameters:
+			text (a string / list of strings) : the string / list of words , whose graph is to be plotted.
+			averageOverWords (int) : say averageOverWords is 100, It means to take  count of required words for every 100 words 
+			tags(list of strings) : tags as per as pos_tags described in nlkt.by defalut it is set to proper nouns.
+			title(string) : saves the graph with name title.png
+		output : 
+			saves graphs in the folder \Data\Gutenberg_Graphs	
+
+		Assumptions : 
+		1)comparing with the coupon collector problem , getting a noun in the text is equivalent to picking a coupon.
+		2)which means if i got n nouns , i picked n times.
+
+
+		Implementation:
+			1)for every 100 words stores the CountOfWords in Xaxis , Count of New Nouns in Yaxis , Count of nouns in Y1axis(indirectly it is storing the number of picks).
+			2)find the expected number of nouns for each pick in Y1axis . and store it in Y1axis
+			3)plot Xaxis,Yaxis
+			4)plot Xaxis,Y1axis
+			5)save the plot 
+
+
+	b)probabilitiesOfCoupons(n,tries):
+		Parameters:
+			n (int) : total number of new Coupons
+			tries(int) : maximum number of tries
+		output:
+			an matrix (tries * n)
+			description of matrix : matrix[i][j] means probability of getting j new coupons in i+1 trie
+
+		Implementation:
+			formula used:
+				probability of getting j new coupons in i+1 th trie is:
+					probability of not getting any new coupon in i+1 th try * probability of getting j new coupons in i-1 th try + probability of getting new coupon in i+1th try * probability of getting j-1 new coupons in ith try 
+			dynamically the probability of getting j coupons in i the try and stores in the matrix at position i-1,j-1 (first row,first colomn stores the probability of getting 1 new coupon in 1 try which is 1)
+
+	c) excpectedCouponCount(Y1axis,n):
+		Parameters:
+			Y1axis (list of int) : list of tries.
+			n (int)			     : total number new Coupons
+		
+		Implementation: 
+			1)first gets probabilities matrix from probabilitiesOfCoupons(n,Y1axix[len(Y1axis)-1]),
+			2)probabilities[i][j] gives the probability of getting j+1 th coupon in i-1 th try;
+			3)expectedValue of a try = sigma from 0 to try-1 (probabilities[try-1][j] * (j+1)) 
+	d) Two functions to get rid of words like "--" or "123". Can be used as check in the functions where list of words is being made.
+		d1)
+			hasPunctuations(inputString):
+				Parameters: Input string
+			
+				Implementation: Uses inbuilt string.punctuation which has "!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~" characters. If the input string has any of these characters, returns true, else false.
+
+				Output: True OR False
+		d2)		
+			hasNumbers(inputString):
+				Parameters: Input String
+				
+				Implementation: Uses the inbuilt function isdigit() to check whether any character in the given string is number or not.
+				
+				Output: True OR False
+	e) graphWiki(title):
+		title : wikipage title
+		description:
+			it downloads the wiki revisions of given title on fly and plot cumulative graph of number of revisions vs time in days.
+
+	f)getRefData(path):
+	  path : path of xml file:
+	  description:
+	  		it returns a dict of domains as key and count of unique urls ad value.(it counts for every revision in the page but only counts unique urls). 
+
+2)main.py:
+	CommandLine_arguments :- experimentNum , experiment specific arguments
