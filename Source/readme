@@ -69,7 +69,7 @@
 	f)getRefData(path):
 	  path : path of xml file:
 	  description:
-	  		it returns a dict of domains as key and count of unique urls ad value.(it counts for every revision in the page but only counts unique urls). 
+	  		it returns a dict of domains as key and count of unique urls ad value.(it counts for the first revision in the page and only counts unique urls). 
 
 2)main.py:
 	CommandLine_arguments :- experimentNum , experiment specific arguments

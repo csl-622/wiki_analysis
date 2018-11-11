@@ -227,12 +227,19 @@ def graphWiki(title):
     plt.show();
 
 
-def getRefData(path):
+def getFirstRev(path):
+	tree = ET.parse(path)
+	root = tree.getroot()
+	return list(root.iter('{http://www.mediawiki.org/xml/export-0.10/}text'))[0].text
+		
+
+
+
+def getRefData(path,getfirstrev=getFirstRev):
 	Refdict={}
 	myset = set() 
-	with open(path,"r") as f:
-		content = f.read()
-	refTags = re.findall(r'&lt;ref.*?&gt.*?;/ref&gt',content);
+	content = getfirstrev(path)
+	refTags = re.findall(r'<ref.*?>.*?/ref>',content);
 	for tag in refTags:
 		urls = re.findall(r"http://[^ ]*",tag);
 		for url in urls:
@@ -244,6 +251,4 @@ def getRefData(path):
 					Refdict[domain[0]] = 1
 				myset.add(url)
 	return Refdict
-
-
 
