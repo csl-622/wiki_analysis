@@ -1,5 +1,5 @@
 from nltk.tag import pos_tag
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 from nltk import word_tokenize
 from nltk import sent_tokenize
 import copy
@@ -10,7 +10,7 @@ import xml.etree.ElementTree as ET
 import re #for matching expressions
 import time #for delaing with broken connection to web.
 import requests #for connection to web.
-
+import os
 
 class TrieNode:
 
@@ -237,7 +237,7 @@ def getFirstRev(path):
 
 def getRefData(path,getfirstrev=getFirstRev):
 	Refdict={}
-	myset = set() 
+	myset = set()
 	content = getfirstrev(path)
 	refTags = re.findall(r'<ref.*?>.*?/ref>',content);
 	for tag in refTags:
@@ -252,3 +252,47 @@ def getRefData(path,getfirstrev=getFirstRev):
 				myset.add(url)
 	return Refdict
 
+def getRatio(path):
+	Refdict = {}
+	filesList = os.listdir(path);
+	n = len(filesList)
+	numOfRev = 0
+	for i in range(n):
+		filename = filesList[i]
+		tree = ET.parse(os.path.join(path,filename));
+		root = tree.getroot();
+		for rev in root.find('{http://www.mediawiki.org/xml/export-0.10/}page').findall('{http://www.mediawiki.org/xml/export-0.10/}revision'):
+			numOfRev+=1
+			revText = rev.find('{http://www.mediawiki.org/xml/export-0.10/}text').text;
+			refTags = re.findall(r'<ref.*?>.*?/ref>',revText);
+			myset = set()
+			for tag in refTags:
+				urls = re.findall(r"http://[^ |]*",tag)
+				if len(urls)!=0:
+					url = urls[0]
+					if url not in myset:
+						if url not in Refdict:
+							Refdict[url] = 1;
+						else:
+							Refdict[url] +=1;
+						myset.add(url);
+	#finding average
+	su=0
+	ma = 0
+	for ref in Refdict:
+		su+=Refdict[ref];
+		if(ma<Refdict[ref]):
+			ma = Refdict[ref] 
+	avg = su/len(Refdict);
+	print("Total Number Of Revisions : "+str(numOfRev))
+	print("highest age of a Reference : "+str(ma)+" revisions")
+	print("Avg age of a Ref : "+str(avg)+" revisions")
+	numberOfRelaibleRev = 0
+	for lrev in myset:
+		if Refdict[lrev]>=avg:
+			numberOfRelaibleRev+=1
+	print("No of relaible Reference in latest revision : "+str(numberOfRelaibleRev)+ " revisions")
+	print("Total no of revisions in latest revision : "+str(len(myset))+ " revisions")
+	ratio = numberOfRelaibleRev/len(myset)
+	print("ratio : "+str(ratio))
+	return ratio 

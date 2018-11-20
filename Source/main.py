@@ -71,4 +71,7 @@ elif(exp == 3):
             print("one revision completed!!")
             fil.write("\n=====================================================================\n")
 
+elif(exp == 4):
+    getRatio(sys.argv[2]);
+
 
