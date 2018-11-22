@@ -296,3 +296,20 @@ def getRatio(path):
 	ratio = numberOfRelaibleRev/len(myset)
 	print("ratio : "+str(ratio))
 	return ratio 
+
+def vaibhav(path):
+    tree = ET.parse(path);root = tree.getroot();
+    root = tree.getroot();
+    fil = open(path+"1","w");
+    for rev in root.find('{http://www.mediawiki.org/xml/export-0.10/}page').findall('{http://www.mediawiki.org/xml/export-0.10/}revision'):
+        text = rev.find('{http://www.mediawiki.org/xml/export-0.10/}text').text;
+        tags=["NNP","NNPS"]
+        tagged_sent =  pos_tag(word_tokenize(text))
+        fil.write("TimeStamp:"+rev.find("{http://www.mediawiki.org/xml/export-0.10/}timestamp").text+"\n");
+        for tagged_word in tagged_sent:
+            if hasNumbers(tagged_word[0]) == False and hasPunctuations(tagged_word[0]) == False and len(tagged_word[0]) > 1:  #to remove words like ",","132" etc.
+                if(tagged_word[1] in tags):
+                    fil.write(tagged_word[0]+" , ")
+        print("one revision completed!!")
+        fil.write("\n=====================================================================\n")
+

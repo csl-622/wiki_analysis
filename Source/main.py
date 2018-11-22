@@ -74,4 +74,8 @@ elif(exp == 3):
 elif(exp == 4):
     getRatio(sys.argv[2]);
 
+elif(exp == 5):
+	vaibhav(sys.argv[2])
+
+
 
