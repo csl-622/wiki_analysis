@@ -20,9 +20,13 @@ if(exp == 1):
     for field in fields:
         graphWords(nltk.corpus.gutenberg.words(field) , title=str(field))
         print ("saved " + str(field) +".png")
+        break
 
 elif(exp == 2):
-    graphWiki(sys.argv[2]);
+    graphWikiPerRevision(sys.argv[2]);
+
+elif(exp == 6):
+    graphWikiPerDay(sys.argv[2]);
 
 elif(exp == 3):
     pageTitle = sys.argv[2]
@@ -72,10 +76,19 @@ elif(exp == 3):
             fil.write("\n=====================================================================\n")
 
 elif(exp == 4):
-    getRatio(sys.argv[2]);
+    getRatioOnFlyByDate(sys.argv[2]);
 
 elif(exp == 5):
 	vaibhav(sys.argv[2])
 
-
+elif(exp == 7):
+    os.chdir("../Data")
+    if not os.path.exists("Reports"):
+        os.makedirs("Reports")
+    os.chdir("Reports");
+    if not os.path.exists(sys.argv[2]):
+        os.makedirs(sys.argv[2])
+    os.chdir(sys.argv[2])
+    graphWikiPerRevision(sys.argv[2]);
+    getRatioOnFlyByDate(sys.argv[2])
 

@@ -1,5 +1,5 @@
 from nltk.tag import pos_tag
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 from nltk import word_tokenize
 from nltk import sent_tokenize
 import copy
@@ -111,25 +111,25 @@ def graphWords(text,averageOverWords=100,tags=["NNP","NNPS"],title="graph"):
 
 """
 def probabilitiesOfCoupons(n,tries):
-	probabilities = [[0.0 for i in range(j+1)] for j in range(tries)];
-	probabilities[0][0]=1.0
-	for i in range(1,tries):
-		for j in range(i+1):
-			if(j==n-1):
-				probabilities[i][j] = probabilities[i-1][j-1]*((n-j)/n);
-			if(len(probabilities[i-1]) >= n ):
-				probabilities[i][j] +=probabilities[i-1][j]*((j+1)/n);
-				break;
-			if(j == 0):
-				probabilities[i][j] = probabilities[i-1][j]*(1/n);
-			elif(j == i):
-				probabilities[i][j] = probabilities[i-1][j-1]*((n-j)/n);
-			else:
-				#probability of getting j new coupons in i+1 th try is:
-				#probability of not getting any new coupon in i+1 th try * probability of getting j new coupons in i-1 th try + probability of getting new coupon in i+1th try * probability of getting j-1 new coupons in ith try 
-				probabilities[i][j] = probabilities[i-1][j-1]*((n-j)/n) + probabilities[i-1][j]*((j+1)/n);
-	return probabilities
-
+    probabilities = [[0.0 for i in range(j+1)] for j in range(tries)];
+    probabilities[0][0]=1.0
+    for i in range(1,tries):
+        for j in range(i+1):
+            #keeping check on corner cases
+            if(j==n-1):
+                probabilities[i][j] = probabilities[i-1][j-1]*((n-j)/n);
+                if(len(probabilities[i-1]) >= n ):
+                    probabilities[i][j] +=probabilities[i-1][j]*((j+1)/n);
+                break;
+            if(j == 0):
+                probabilities[i][j] = probabilities[i-1][j]*(1/n);
+            elif(j == i):
+                probabilities[i][j] = probabilities[i-1][j-1]*((n-j)/n);
+            else:
+                #probability of getting j new coupons in i+1 th trie is:
+                #probability of not getting any new coupon in i+1 th try * probability of getting j new coupons in i-1 th try + probability of getting new coupon in i+1th try * probability of getting j-1 new coupons in ith try 
+                probabilities[i][j] = probabilities[i-1][j-1]*((n-j)/n) + probabilities[i-1][j]*((j+1)/n);
+    return probabilities
 def excpectedCouponCount(Y1axis,n):
     m = len(Y1axis);
     probabilities = probabilitiesOfCoupons(n,Y1axis[m-1])
@@ -165,7 +165,7 @@ def getNewNounsCount(text,trie,tags = ["NNP","NNPS"]):
             trie.insert(tagged_word[0]);
     return numberOfNouns 
  
-def graphWiki(title):
+def graphWikiPerDay(title):
     pageTitle = title
     url="https://en.wikipedia.org/w/api.php?action=query&format=xml&prop=revisions&rvprop=timestamp|content&rvlimit=max&rvdir=newer&titles="+pageTitle   #url for getting data
     tags = ["NNP","NNPS"]
@@ -176,11 +176,12 @@ def graphWiki(title):
     #initial starting Date 
     d1 = datetime.strptime("2001-1-1T0:0:0Z",fmt);
     firsTime = True;
-    trie = Trie()
+    myset = set()
     nounCount = 0;
     XY={}
     cleanr = re.compile('<.*?>')
     count = 0;
+    X=[]
     while True:
         response=""
         #Getting the request page
@@ -199,31 +200,97 @@ def graphWiki(title):
         start = time.clock()
         #for every revesion in the page
         for rev in e.find('query').find('pages').find('page').find('revisions').findall('rev'):
-            if(firsTime):
+            if(firsTime == False):
                 d1 = datetime.strptime(rev.get("timestamp"),fmt);
                 firsTime == False
             wikiText =  (re.sub(cleanr,"",str(rev.text)))
-            print (wikiText)
             tagged_words = pos_tag(word_tokenize(wikiText))
             for tagged_word in tagged_words:
                 if hasNumbers(tagged_word[0]) == False and hasPunctuations(tagged_word[0]) == False and len(tagged_word[0]) > 1:  #to remove words like ",","132" etc.
                     if(tagged_word[1] in tags):
-                    	if(trie.search(tagged_word[0])):
-                    		nounCount+=1
-                    		trie.insert(tagged_word[0]);
+                        if(tagged_word[0] not in myset):
+                            nounCount+=1
+                            myset.add(tagged_word[0]);
             d2 = datetime.strptime(rev.get("timestamp"),fmt);
+            X.append((d2-d1).days)
             XY[(d2-d1).days] = nounCount
         count=count+1
-        cont = e.find('continue').get('rvcontinue')
-        print(str(count)+" page Completed : " + str(time.clock()-start)+ "ms"+ "rvcontinue = "+ cont);
-        if not cont:                                      #break the loop if 'continue' element missing
+        tempv = e.find('continue')
+        if not tempv:                                      #break the loop if 'continue' element missing
             break
+        cont = tempv.get('rvcontinue')
+        print(str(count)+" page Completed : " + str(time.clock()-start)+ "ms"+ "rvcontinue = "+ cont);
 
         next = "&rvcontinue=" + str(cont)            #gets the revision Id from which to start the next request
-    lists = sorted(d.items())
+    lists = sorted(XY.items())
     x, y = zip(*lists);
-    plt.plot(x, y);
-    plt.savefig("test.png");
+    plt.plot(x, y,label='original_graph');
+    Y=[i for i in X]
+    excpectedCouponCount(Y,nounCount)
+    plt.plot(X,Y,label='Coupon_Collector_Graph(n= '+str(nounCount)+')');
+    plt.savefig(str(title)+"_date.png");
+    plt.show();
+
+
+def graphWikiPerRevision(title):
+    pageTitle = title
+    url="https://en.wikipedia.org/w/api.php?action=query&format=xml&prop=revisions&rvprop=content&rvlimit=max&rvdir=newer&titles="+pageTitle   #url for getting data
+    tags = ["NNP","NNPS"]
+    next = ""                                             #information for the next request
+    firsTime = True
+    #initial starting Date 
+    myset = set()
+    nounCount = 0;
+    XY=[]
+    cleanr = re.compile('<.*?>')
+    count = 0;
+    X=[]
+    while True:
+        response=""
+        #Getting the request page
+        while(response==""):
+            try:
+                response = requests.get(url + next)  #web request
+                if (response.content==""):
+                    response=""
+            except:
+                print ("sleeping started")
+                time.sleep(5)     
+                print("sleeping ended")
+        
+        #parsing the xml file.
+        e =  ET.fromstring(response.content);
+        start = time.clock()
+        #for every revesion in the page
+
+        for rev in e.find('query').find('pages').find('page').find('revisions').findall('rev'):
+            if(firsTime == False):
+                d1 = datetime.strptime(rev.get("timestamp"),fmt);
+                firsTime == False
+            wikiText =  (re.sub(cleanr,"",str(rev.text)))
+            tagged_words = pos_tag(word_tokenize(wikiText))
+            for tagged_word in tagged_words:
+                if hasNumbers(tagged_word[0]) == False and hasPunctuations(tagged_word[0]) == False and len(tagged_word[0]) > 1:  #to remove words like ",","132" etc.
+                    if(tagged_word[1] in tags):
+                        if(tagged_word[0] not in myset):
+                            nounCount+=1
+                            myset.add(tagged_word[0]);
+            XY.append(nounCount)
+        tempv = e.find('continue')
+        if tempv == None:                                      #break the loop if 'continue' element missing
+            break
+        cont = tempv.get('rvcontinue')
+        count +=1
+        print(str(count)+" page Completed : " + str(time.clock()-start)+ "ms "+ "rvcontinue = "+ cont);
+        next = "&rvcontinue=" + str(cont)            #gets the revision Id from which to start the next request
+    plt.plot(XY,label='original_graph');
+    X = [i for i in range(len(XY))]
+    plt.xlabel('number of revisions---------->');
+    plt.ylabel('cummulative newNounCount count ---------------->');
+    excpectedCouponCount(X,nounCount)
+    plt.plot(X,label='Coupon_Collector_Graph(n= '+str(nounCount)+')');
+    plt.legend()
+    plt.savefig(str(title)+"_rev.png");
     plt.show();
 
 
@@ -295,7 +362,153 @@ def getRatio(path):
 	print("Total no of revisions in latest revision : "+str(len(myset))+ " revisions")
 	ratio = numberOfRelaibleRev/len(myset)
 	print("ratio : "+str(ratio))
-	return ratio 
+	return ratio
+
+def getRatioOnFlyByRev(title):
+    numOfRev=0
+    pageTitle = title
+    Refdict = {}
+    urlOfTitle="https://en.wikipedia.org/w/api.php?action=query&format=xml&prop=revisions&rvprop=content&rvlimit=max&rvdir=newer&titles="+pageTitle   #url for getting data
+    next = ""                                             #information for the next request
+    cleanr = re.compile('<.*?>')
+    count = 0;
+    while True:
+        response=""
+        #Getting the request page
+        while(response==""):
+            try:
+                response = requests.get(urlOfTitle + next)  #web request
+                if (response.content==""):
+                    response=""
+            except:
+                print ("sleeping started")
+                time.sleep(5)     
+                print("sleeping ended")
+        
+        #parsing the xml file.
+        e =  ET.fromstring(response.content);
+        start = time.clock()
+        #for every revesion in the page
+
+        for rev in e.find('query').find('pages').find('page').find('revisions').findall('rev'):
+            numOfRev+=1
+            revText = rev.text;
+            refTags = re.findall(r'<ref.*?>.*?/ref>',revText);
+            myset = set()
+            for tag in refTags:
+                urls = re.findall(r"http://[^ |]*",tag)
+                if len(urls)!=0:
+                    url = urls[0]
+                    if url not in myset:
+                        if url not in Refdict:
+                            Refdict[url] = 1;
+                        else:
+                            Refdict[url] +=1;
+                        myset.add(url);
+        tempv = e.find('continue')
+        if tempv == None:                                      #break the loop if 'continue' element missing
+            break
+        cont = tempv.get('rvcontinue')
+        print(str(count)+" page Completed : " + str(time.clock()-start)+ "ms "+ "rvcontinue = "+ cont);
+        next = "&rvcontinue=" + str(cont)            #gets the revision Id from which to start the next request
+    su=0
+    ma = 0
+    for ref in Refdict:
+        su+=Refdict[ref];
+        if(ma<Refdict[ref]):
+            ma = Refdict[ref] 
+    avg = su/len(Refdict);
+    print("Total Number Of Revisions : "+str(numOfRev))
+    print("highest age of a Reference : "+str(ma)+" revisions")
+    print("Avg age of a Ref : "+str(avg)+" revisions")
+    numberOfRelaibleRev = 0
+    for lrev in myset:
+        if Refdict[lrev]>=avg:
+            numberOfRelaibleRev+=1
+    print("No of relaible Reference in latest revision : "+str(numberOfRelaibleRev)+ " revisions")
+    print("Total no of revisions in latest revision : "+str(len(myset))+ " revisions")
+    ratio = numberOfRelaibleRev/len(myset)
+    print("ratio : "+str(ratio))
+    return ratio
+
+def getRatioOnFlyByDate(title):
+    numOfRev=0
+    pageTitle = title
+    Refdict = {}
+    urlOfTitle="https://en.wikipedia.org/w/api.php?action=query&format=xml&prop=revisions&rvprop=timestamp|content&rvlimit=max&rvdir=newer&titles="+pageTitle   #url for getting data
+    next = ""                                             #information for the next request
+    cleanr = re.compile('<.*?>')
+    count = 0;
+    fmt = "%Y-%m-%dT%H:%M:%SZ"
+    while True:
+        response=""
+        #Getting the request page
+        while(response==""):
+            try:
+                response = requests.get(urlOfTitle + next)  #web request
+                if (response.content==""):
+                    response=""
+            except:
+                print ("sleeping started")
+                time.sleep(5)     
+                print("sleeping ended")
+        
+        #parsing the xml file.
+        e =  ET.fromstring(response.content);
+        start = time.clock()
+        #for every revesion in the page
+
+        for rev in e.find('query').find('pages').find('page').find('revisions').findall('rev'):
+            numOfRev+=1
+            revText = rev.text;
+            if revText == None:
+                continue
+            refTags = re.findall(r'<ref.*?>.*?/ref>',revText);
+            myset = set()
+            for tag in refTags:
+                urls = re.findall(r"http://[^ |]*",tag)
+                if len(urls)!=0:
+                    url = urls[0]
+                    if url not in myset:
+                        if url not in Refdict:
+                            Refdict[url] =[datetime.strptime(rev.get("timestamp"),fmt),datetime.strptime(rev.get("timestamp"),fmt)];
+                        else:
+                            Refdict[url][1]=datetime.strptime(rev.get("timestamp"),fmt);
+                        myset.add(url);
+        tempv = e.find('continue')
+        if tempv == None:                                      #break the loop if 'continue' element missing
+            break
+        cont = tempv.get('rvcontinue')
+        count +=1
+        print(str(count)+" page Completed : " + str(time.clock()-start)+ "s "+ "rvcontinue = "+ cont);
+        next = "&rvcontinue=" + str(cont)            #gets the revision Id from which to start the next request
+    su=0
+    ma = 0
+    for lrev in myset:
+        Refdict[lrev][1] = datetime.now()
+    for ref in Refdict:
+        su+=(Refdict[ref][1]-Refdict[ref][0]).days;
+        if(ma<(Refdict[ref][1]-Refdict[ref][0]).days):
+            ma = (Refdict[ref][1]-Refdict[ref][0]).days 
+    avg = su/len(Refdict);
+    ratio = 0
+    with open(title+"_Date.report",'w') as f:
+        f.write("Total Number Of Revisions : "+str(numOfRev))
+        f.write("\n")
+        f.write("highest age of a Reference : "+str(ma)+" days\n")
+        f.write("Avg age of a Ref : "+str(avg)+" days\n")
+        numberOfRelaibleRev = 0
+        for lrev in myset:
+            print(Refdict[lrev])
+            if (Refdict[lrev][1]-Refdict[lrev][0]).days>=avg:
+                numberOfRelaibleRev+=1
+        f.write("No of relaible Reference in latest revision : "+str(numberOfRelaibleRev)+ " revisions\n")
+        f.write("Total no of revisions in latest revision : "+str(len(myset))+ " revisions\n")
+        ratio = numberOfRelaibleRev/len(myset)
+        f.write("ratio : "+str(ratio))
+        f.write("\n")
+    return ratio
+
 
 def vaibhav(path):
     tree = ET.parse(path);root = tree.getroot();
