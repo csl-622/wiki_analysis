@@ -3,7 +3,7 @@ import os
 from functions import *
 import sys
 
-
+# -*- coding: utf-8 -*-
 
 exp = int(sys.argv[1])
 
@@ -91,4 +91,57 @@ elif(exp == 7):
     os.chdir(sys.argv[2])
     graphWikiPerRevision(sys.argv[2]);
     getRatioOnFlyByDate(sys.argv[2])
+
+elif(exp == 8):
+    os.chdir("../Data")
+    if not os.path.exists("Reports"):
+        os.makedirs("Reports")
+    ratioDict= {}
+    file = open(os.path.join(".","Reports",sys.argv[2]+".report"),"w");
+    with open(sys.argv[2],"r") as f:
+        for articlei in f:
+            article = articlei.strip()
+            print(article.encode(encoding='utf-8'))
+            ratioDict[article]=getRatioOnFlyByDate(article);
+            file.write(str(article)+" : "+str(ratioDict[article]))
+            file.write("\n")
+    file.close();
+    """for key in ratioDict:
+        if(ratioDict[key]>0):
+            avg += ratioDict[key]
+        else:
+            numUnRel+=1
+    avg = avg/(len(ratioDict)-numUnRel)
+    os.chdir("Reports");
+    with open(str(sys.argv[2])+".report","w") as fi:
+        fi.write("total number of articles : "+ str(len(ratioDict)))
+        fi.write("\n")
+        fi.write("average ratio of articles : "+str(avg))
+        fi.write("\n")
+        fi.write("unrelaible articles : "+str(numUnRel))
+        fi.write("\narticles above average:\n")
+        for key in ratioDict:
+            if(ratioDict[key]>=avg):
+                fi.write(str(key)+" : "+str(ratioDict[key]))
+                fi.write("\n")
+        fi.write("articles below average : \n")
+        for key in ratioDict:
+            if(ratioDict[key]<avg and ratioDict[key] != -1 and ratioDict[key] != -2):
+                fi.write(str(key)+" : "+str(ratioDict[key]))
+                fi.write("\n")
+        fi.write("unrelaible articles : \n")
+        for key in ratioDict:
+            if(ratioDict[key]==-1):
+                fi.write(str(key)+" : "+str(ratioDict[key]))
+                fi.write("\n")"""
+elif(exp == 9):
+    os.chdir("../Data")
+    if not os.path.exists("Graphs"):
+        os.makedirs("Graphs")
+    os.chdir("Graphs")
+    with open(sys.argv[2],"r") as f:
+        for articlei in f:
+            article = articlei.strip()
+            print(article.encode(encoding='utf-8'))
+            graphWikiPerRevision(article);
 

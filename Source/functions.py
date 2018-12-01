@@ -11,6 +11,7 @@ import re #for matching expressions
 import time #for delaing with broken connection to web.
 import requests #for connection to web.
 import os
+import math
 
 class TrieNode:
 
@@ -257,6 +258,7 @@ def graphWikiPerRevision(title):
                 print ("sleeping started")
                 time.sleep(5)     
                 print("sleeping ended")
+                return
         
         #parsing the xml file.
         e =  ET.fromstring(response.content);
@@ -284,14 +286,15 @@ def graphWikiPerRevision(title):
         print(str(count)+" page Completed : " + str(time.clock()-start)+ "ms "+ "rvcontinue = "+ cont);
         next = "&rvcontinue=" + str(cont)            #gets the revision Id from which to start the next request
     plt.plot(XY,label='original_graph');
-    X = [i for i in range(len(XY))]
+    n = len(XY)
+    X = [i for i in range(int(n*math.log10(n)))]
     plt.xlabel('number of revisions---------->');
     plt.ylabel('cummulative newNounCount count ---------------->');
     excpectedCouponCount(X,nounCount)
     plt.plot(X,label='Coupon_Collector_Graph(n= '+str(nounCount)+')');
     plt.legend()
     plt.savefig(str(title)+"_rev.png");
-    plt.show();
+    plt.close();
 
 
 def getFirstRev(path):
@@ -322,7 +325,7 @@ def getRefData(path,getfirstrev=getFirstRev):
 def getRatio(path):
 	Refdict = {}
 	filesList = os.listdir(path);
-	n = len(filesList)
+	n = legend(filesList)
 	numOfRev = 0
 	for i in range(n):
 		filename = filesList[i]
@@ -457,7 +460,8 @@ def getRatioOnFlyByDate(title):
         e =  ET.fromstring(response.content);
         start = time.clock()
         #for every revesion in the page
-
+        if(e.find('query').find('pages').find('page').find('revisions')==None):
+        	return -2;
         for rev in e.find('query').find('pages').find('page').find('revisions').findall('rev'):
             numOfRev+=1
             revText = rev.text;
@@ -489,24 +493,19 @@ def getRatioOnFlyByDate(title):
     for ref in Refdict:
         su+=(Refdict[ref][1]-Refdict[ref][0]).days;
         if(ma<(Refdict[ref][1]-Refdict[ref][0]).days):
-            ma = (Refdict[ref][1]-Refdict[ref][0]).days 
+            ma = (Refdict[ref][1]-Refdict[ref][0]).days
+    if(len(Refdict)==0):
+    	return -1
     avg = su/len(Refdict);
     ratio = 0
-    with open(title+"_Date.report",'w') as f:
-        f.write("Total Number Of Revisions : "+str(numOfRev))
-        f.write("\n")
-        f.write("highest age of a Reference : "+str(ma)+" days\n")
-        f.write("Avg age of a Ref : "+str(avg)+" days\n")
-        numberOfRelaibleRev = 0
-        for lrev in myset:
-            print(Refdict[lrev])
-            if (Refdict[lrev][1]-Refdict[lrev][0]).days>=avg:
-                numberOfRelaibleRev+=1
-        f.write("No of relaible Reference in latest revision : "+str(numberOfRelaibleRev)+ " revisions\n")
-        f.write("Total no of revisions in latest revision : "+str(len(myset))+ " revisions\n")
-        ratio = numberOfRelaibleRev/len(myset)
-        f.write("ratio : "+str(ratio))
-        f.write("\n")
+    numberOfRelaibleRev = 0
+    for lrev in myset:
+        print(Refdict[lrev])
+        if (Refdict[lrev][1]-Refdict[lrev][0]).days>=avg:
+            numberOfRelaibleRev+=1
+    if(len(myset)==0):
+    	return -1
+    ratio = numberOfRelaibleRev/len(myset)
     return ratio
 
 
@@ -525,4 +524,3 @@ def vaibhav(path):
                     fil.write(tagged_word[0]+" , ")
         print("one revision completed!!")
         fil.write("\n=====================================================================\n")
-
